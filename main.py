@@ -13,7 +13,7 @@ class WeatherApp(QWidget):
         self.search_btn = QPushButton("Search..")
         self.city_name = QLabel()
         self.temprature = QLabel()
-        # self.emoji = QLabel()
+        self.emoji = QLabel("")
         self.description = QLabel()
         self.wind_speed = QLabel()
 
@@ -28,7 +28,7 @@ class WeatherApp(QWidget):
         vbox.addWidget(self.search_btn)
         vbox.addWidget(self.city_name)
         vbox.addWidget(self.temprature)
-        # vbox.addWidget(self.emoji)
+        vbox.addWidget(self.emoji)
         vbox.addWidget(self.description)
         vbox.addWidget(self.wind_speed)
 
@@ -41,7 +41,7 @@ class WeatherApp(QWidget):
         self.city_name.setObjectName("city")
         self.temprature.setObjectName("temprature")
         self.text_label.setObjectName("text_label")
-        # self.emoji.setObjectName("emoji")
+        self.emoji.setObjectName("emoji")
         self.input_label.setObjectName("input")
         self.setStyleSheet("""
                
@@ -101,7 +101,7 @@ class WeatherApp(QWidget):
 
         self.city_name.setAlignment(Qt.AlignCenter)
         self.temprature.setAlignment(Qt.AlignCenter)
-        # self.emoji.setAlignment(Qt.AlignCenter)
+        self.emoji.setAlignment(Qt.AlignCenter)
         self.wind_speed.setAlignment(Qt.AlignCenter)
         self.description.setAlignment(Qt.AlignCenter)
         self.search_btn.clicked.connect(self.get_weather)
@@ -116,7 +116,7 @@ class WeatherApp(QWidget):
         data = response.json()
         if data['cod'] == 200:
             self.display_weather(data)
-            # print(data)
+            print(data)
      except requests.exceptions.HTTPError as http_error:
         match response.status_code:
             case 400:
@@ -160,12 +160,32 @@ class WeatherApp(QWidget):
             city = data["name"]
             description = data["weather"][0]["description"]
             wind_speed = data['wind']['speed']
+            weather_id = data["weather"][0]["id"]
             temprature_celcius = temprature  - 273.15
             self.temprature.setText(f"{temprature_celcius:.0f}°C")
             self.city_name.setText(city)
             self.description.setText(description)
             self.wind_speed.setText(str(f"Wind Speed: {wind_speed}"))
+            self.emoji.setText(self.get_weather_emoji(weather_id))
             self.input_label.clear()
+    @staticmethod
+    def get_weather_emoji(weather_id):
+        if weather_id >=200 and weather_id <= 232:
+            return "⛈️"
+        elif weather_id >=300 and weather_id <= 321:
+            return "🌦️"
+        elif weather_id >=500 and weather_id <= 531:
+            return "🌧️"
+        elif weather_id >=600 and weather_id <= 622:
+            return "🌨️"
+        elif weather_id >=701 and weather_id <= 781:
+            return "🌪️"
+        elif weather_id ==800 :
+            return "☀️"
+        elif weather_id >=800 and weather_id <=804 :
+            return "☁️"
+            
+        
 def main():
     app = QApplication(sys.argv)
     weatherapp = WeatherApp()
