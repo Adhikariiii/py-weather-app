@@ -1,48 +1,28 @@
-import requests
-from PyQt5.QtWidgets import QApplication, QPushButton, QLabel, QVBoxLayout, QHBoxLayout, QWidget, QLineEdit
+from PyQt5.QtWidgets import QApplication, QWidget, QLabel, QPushButton, QVBoxLayout, QHBoxLayout, QLineEdit
 from PyQt5.QtCore import Qt
 import sys
+import requests
 
 class WeatherApp(QWidget):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Weather App")
-
-        self.text_label = QLabel("Enter the name of the city: ")
-        self.input_label = QLineEdit()
-        self.search_btn = QPushButton("Search..")
-        self.city_name = QLabel()
+        self.text_label = QLabel("Enter the name of city: ", self)
+        self.input_label = QLineEdit(self)
+        self.search_btn = QPushButton("Get Weather")
+        self.city_name = QLabel( self)
         self.temprature = QLabel()
-        self.emoji = QLabel("")
+        self.wind_spped = QLabel()
         self.description = QLabel()
-        self.wind_speed = QLabel()
-
+        self.emoji = QLabel()
         self.initUI()
 
-
-    
     def initUI(self):
-        vbox = QVBoxLayout()
-        vbox.addWidget(self.text_label)
-        vbox.addWidget(self.input_label)
-        vbox.addWidget(self.search_btn)
-        vbox.addWidget(self.city_name)
-        vbox.addWidget(self.temprature)
-        vbox.addWidget(self.emoji)
-        vbox.addWidget(self.description)
-        vbox.addWidget(self.wind_speed)
-
-        self.setLayout(vbox)
-        hbox = QHBoxLayout()
-        hbox.addWidget(self.text_label)
-        hbox.addWidget(self.input_label)
-        hbox.addWidget(self.search_btn)
-        vbox.addLayout(hbox)
         self.city_name.setObjectName("city")
         self.temprature.setObjectName("temprature")
-        self.text_label.setObjectName("text_label")
-        self.emoji.setObjectName("emoji")
+        self.wind_spped.setObjectName("wind_spped")
+        self.description.setObjectName("description")
         self.input_label.setObjectName("input")
+        self.emoji.setObjectName("emoji")
         self.setStyleSheet("""
                
                 WeatherApp {
@@ -98,16 +78,39 @@ class WeatherApp(QWidget):
                            color:black;}
                 """)
 
+        vbox = QVBoxLayout()
+       
+        vbox.addWidget(self.city_name)
+        vbox.addWidget(self.temprature)
+        vbox.addWidget(self.wind_spped)
+        vbox.addWidget(self.description)
+        vbox.addWidget(self.text_label)
+        vbox.addWidget(self.input_label)
+        vbox.addWidget(self.search_btn)
+        vbox.addWidget(self.emoji)
 
+        self.setLayout(vbox)
         self.city_name.setAlignment(Qt.AlignCenter)
         self.temprature.setAlignment(Qt.AlignCenter)
-        self.emoji.setAlignment(Qt.AlignCenter)
-        self.wind_speed.setAlignment(Qt.AlignCenter)
+        self.wind_spped.setAlignment(Qt.AlignCenter)
         self.description.setAlignment(Qt.AlignCenter)
+        self.emoji.setAlignment(Qt.AlignCenter)
+        
+        hbox = QHBoxLayout()
+        hbox.addWidget(self.text_label)
+        hbox.addWidget(self.input_label)
+        hbox.addWidget(self.search_btn)
+
+        vbox.addLayout(hbox)
+
+
+
         self.search_btn.clicked.connect(self.get_weather)
-    
+
+        
+
     def get_weather(self):
-     try:
+      try:
         api_key = "2cad64a3367576ab6caa382874e179ef"
         city_name = self.input_label.text()
         url = f"https://api.openweathermap.org/data/2.5/weather?q={city_name}&appid={api_key}"
@@ -115,9 +118,9 @@ class WeatherApp(QWidget):
         response.raise_for_status()
         data = response.json()
         if data['cod'] == 200:
-            self.display_weather(data)
             print(data)
-     except requests.exceptions.HTTPError as http_error:
+            self.display_weather(data)
+      except requests.exceptions.HTTPError as http_error:
         match response.status_code:
             case 400:
                 self.display_error("Bad reqeust")
@@ -143,33 +146,38 @@ class WeatherApp(QWidget):
                 self.display_error("Gateway Timeout")
             case _: 
                 self.display_error(f"Unexpcted Error: {http_error }")
+      except requests.exceptions.ConnectionError:
+        self.display_error("Connection Error!")
 
-     except requests.exceptions.ConnectionError:
-         self.display_error("Connection Error!")
+     
 
-    def display_error(self, messaage):
-        self.city_name.setText(messaage)
+    
+    def display_weather(self, data):
+        city = data['name']
+        temprature = data['main']['temp']
+        temp_in_celcius = temprature -  273.15
+        wind_speed = data['wind']['speed']
+        description = data['weather'][0]['description']
+        weather_id = data['weather'][0]['id']
+        
+        
+        self.city_name.setText(city)
+        self.temprature.setText(str(f"{temp_in_celcius:.0f}℃"))
+        self.wind_spped.setText(f"Wind Speed: {str(wind_speed)}")
+        self.description.setText(f"Description: {str(description)}")
+        self.emoji.setText(self.display_emoji(weather_id))
+        self.input_label.clear()
+    
+    def display_error(self, message):
+        self.city_name.setText(message)
         self.temprature.clear()
-        self.wind_speed.clear()
+        self.wind_spped.clear()
         self.description.clear()
         self.input_label.clear()
+        self.emoji.clear()
 
-
-    def display_weather(self, data):
-            temprature = data["main"]["temp"]
-            city = data["name"]
-            description = data["weather"][0]["description"]
-            wind_speed = data['wind']['speed']
-            weather_id = data["weather"][0]["id"]
-            temprature_celcius = temprature  - 273.15
-            self.temprature.setText(f"{temprature_celcius:.0f}°C")
-            self.city_name.setText(city)
-            self.description.setText(description)
-            self.wind_speed.setText(str(f"Wind Speed: {wind_speed}"))
-            self.emoji.setText(self.get_weather_emoji(weather_id))
-            self.input_label.clear()
     @staticmethod
-    def get_weather_emoji(weather_id):
+    def display_emoji(weather_id):
         if weather_id >=200 and weather_id <= 232:
             return "⛈️"
         elif weather_id >=300 and weather_id <= 321:
@@ -185,12 +193,16 @@ class WeatherApp(QWidget):
         elif weather_id >=800 and weather_id <=804 :
             return "☁️"
             
-        
+
+
 def main():
     app = QApplication(sys.argv)
     weatherapp = WeatherApp()
     weatherapp.show()
     sys.exit(app.exec_())
+
+
 if __name__ == "__main__":
     main()
-    
+
+
